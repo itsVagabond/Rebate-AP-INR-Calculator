@@ -89,7 +89,7 @@ export default class App extends React.Component {
     return (
       <div className="App">
         <header className="App-header">
-          <h2>Asort Rebate AP & INR Calculator v0.1.0</h2>
+          <h2>Rebate AP & INR Calculator v0.1.0</h2>
           <h3>Customer. Single SKU. Included Tax in Promo-code.</h3>
         </header>
         <div className="container">
