@@ -1,19 +1,28 @@
 import React from "react";
 import "./App.css";
+import packageJSON from "../package.json";
+import AddSKU from "./AddSKU";
 
 export default class App extends React.Component {
   constructor(props) {
     super(props);
 
+    const INITIAL_STATE = {
+      sku: "",
+      quantity: 0,
+      basePrice: 0,
+      baseAP: 0,
+    };
+
     this.state = {
       testCase: "",
       orderNo: 0,
       rebateRank: 0,
-      quantity: 0,
-      basePrice: 0,
+      skuType: "single",
+      skuDetailList: [INITIAL_STATE],
       credits: 0,
+      typeOfPromoCode: "",
       promoCode: 0,
-      totalAP: 0,
     };
   }
 
@@ -23,20 +32,48 @@ export default class App extends React.Component {
       [name]: value,
     };
 
-    if (name !== "testCase")
-      updateStateObj[name] = parseInt(updateStateObj[name]);
+    if (!["testCase", "typeOfPromoCode", "skuType", "skuDetailList"].includes(name))
+      updateStateObj[name] = parseFloat(updateStateObj[name]);
 
     this.setState(updateStateObj);
   };
 
   calculateTotalPrice = () => {
-    const { basePrice, quantity } = this.state;
-    return basePrice * quantity;
+    const { skuType, skuDetailList } = this.state;
+    if (skuType === "single") {
+      const { basePrice, quantity } = skuDetailList[0];
+      return basePrice * quantity || 0;
+    }
+
+    let totalPrice = 0;
+    skuDetailList.map((skuDetail) => {
+      const { basePrice, quantity } = skuDetail;
+      totalPrice += basePrice * quantity;
+
+      return true;
+    });
+    return totalPrice || 0;
+  };
+
+  calculateTotalAP = () => {
+    const { skuType, skuDetailList } = this.state;
+    if (skuType === "single") {
+      const { baseAP, quantity } = skuDetailList[0];
+      return baseAP * quantity || 0;
+    }
+
+    let totalAP = 0;
+    skuDetailList.map((skuDetail) => {
+      const { baseAP, quantity } = skuDetail;
+      totalAP += baseAP * quantity;
+
+      return true;
+    });
+    return totalAP || 0;
   };
 
   calculateAPRatio = () => {
-    const { totalAP } = this.state;
-    return totalAP / this.calculateTotalPrice();
+    return this.calculateTotalAP() / this.calculateTotalPrice();
   };
 
   calculateTotalPriceToBeConsidered = () => {
@@ -50,8 +87,7 @@ export default class App extends React.Component {
   };
 
   calculateTotalAPToBeConsidered = () => {
-    const { totalAP } = this.state;
-    return totalAP - this.calculateEffectiveAP();
+    return this.calculateTotalAP() - this.calculateEffectiveAP();
   };
 
   percentDiscountByRank = () => {
@@ -85,12 +121,60 @@ export default class App extends React.Component {
     return this.calculateRebateAP() / 2;
   };
 
+  onChangeSKUInput = (e) => {
+    const {
+      name,
+      value,
+      dataset: { index },
+    } = e.target;
+
+    this.setState((state) => {
+      const { skuDetailList } = state;
+
+      skuDetailList[index][name] = value === "sku" ? value : parseFloat(value);
+
+      return {
+        skuDetailList,
+      };
+    });
+  };
+
+  addSKUField = () => {
+    const INITIAL_STATE = {
+      sku: "",
+      quantity: 0,
+      basePrice: 0,
+      baseAP: 0,
+    };
+
+    this.setState((state) => {
+      const { skuDetailList } = state;
+      skuDetailList.push(INITIAL_STATE);
+
+      return {
+        skuDetailList,
+      };
+    });
+  };
+
   render() {
+    const {
+      testCase,
+      orderNo,
+      credits,
+      promoCode,
+      typeOfPromoCode,
+      skuType,
+      skuDetailList,
+    } = this.state;
+
     return (
       <div className="App">
         <header className="App-header">
-          <h2>Rebate AP & INR Calculator v0.1.0</h2>
-          <h3>Customer. Single SKU. Included Tax in Promo-code.</h3>
+          <h2>
+            Rebate AP & INR Calculator <span>{"v" + packageJSON.version}</span>
+          </h2>
+          <h3>Customer/Distributor. Multi SKU. Included Tax in Promo-code.</h3>
         </header>
         <div className="container">
           <div id="contact">
@@ -103,6 +187,7 @@ export default class App extends React.Component {
               autoFocus
               name="testCase"
               onChange={this.onChangeInput}
+              value={testCase}
             />
 
             <label>Order No.</label>
@@ -113,12 +198,13 @@ export default class App extends React.Component {
               name="orderNo"
               required
               onChange={this.onChangeInput}
+              value={orderNo}
             />
 
             <label>Rebate Rank</label>
             <select
               name="rebateRank"
-              id="pet-select"
+              id="rank-select"
               tabIndex="3"
               required
               onChange={this.onChangeInput}
@@ -134,37 +220,56 @@ export default class App extends React.Component {
             </select>
 
             <fieldset>
-              <legend>Some SKU</legend>
-              <label>Quantity</label>
-              <input
-                placeholder="Quantity"
-                type="number"
-                tabIndex="4"
-                required
-                name="quantity"
-                onChange={this.onChangeInput}
-              />
+              <legend>
+                <select
+                  name="skuType"
+                  id="skuType-select"
+                  tabIndex="3"
+                  required
+                  onChange={this.onChangeInput}
+                >
+                  <option value={"single"}>Single SKU</option>
+                  <option value={"multi"}>Multi SKU</option>
+                </select>
+              </legend>
+              {skuType === "multi" ? (
+                skuDetailList.map((skuDetail, idx) => {
+                  const { sku, quantity, basePrice, baseAP } = skuDetail;
 
-              <label>Base Price</label>
-              <input
-                placeholder="Base Price"
-                type="number"
-                tabIndex="5"
-                required
-                name="basePrice"
-                onChange={this.onChangeInput}
-              />
+                  return (
+                    <AddSKU
+                      skuType={skuType}
+                      sku={sku}
+                      quantity={quantity}
+                      basePrice={basePrice}
+                      baseAP={baseAP}
+                      index={idx}
+                      key={"skuDetail-" + idx}
+                      onChangeSKUInput={this.onChangeSKUInput}
+                    />
+                  );
+                })
+              ) : (
+                <AddSKU
+                  skuType={skuType}
+                  sku={skuDetailList[0].sku}
+                  quantity={skuDetailList[0].quantity}
+                  basePrice={skuDetailList[0].basePrice}
+                  baseAP={skuDetailList[0].baseAP}
+                  index={0}
+                  onChangeSKUInput={this.onChangeSKUInput}
+                />
+              )}
+              {skuType === "multi" && (
+                <button
+                  name="addSKUField"
+                  type="button"
+                  onClick={this.addSKUField}
+                >
+                  ADD
+                </button>
+              )}
             </fieldset>
-
-            <label>Total AP</label>
-            <input
-              placeholder="Total AP"
-              type="number"
-              tabIndex="6"
-              required
-              name="totalAP"
-              onChange={this.onChangeInput}
-            />
 
             <label>Credits</label>
             <input
@@ -174,17 +279,48 @@ export default class App extends React.Component {
               required
               name="credits"
               onChange={this.onChangeInput}
+              value={credits}
+              min={0}
             />
 
-            <label>Promo Code</label>
-            <input
-              placeholder="Promo Code"
-              type="number"
-              tabIndex="8"
-              required
-              name="promoCode"
-              onChange={this.onChangeInput}
-            />
+            <fieldset>
+              <legend>Promo Code Details</legend>
+
+              <div className="radio-button-group">
+                <label>Included Tax</label>
+                <input
+                  type="radio"
+                  value="includedTax"
+                  name="typeOfPromoCode"
+                  checked={typeOfPromoCode === "includedTax"}
+                  tabIndex="8"
+                  onChange={this.onChangeInput}
+                />
+
+                {/* <label>Excluded Tax</label>
+                <input
+                  type="radio"
+                  value="excludedTax"
+                  name="typeOfPromoCode"
+                  tabIndex="9"
+                  checked={typeOfPromoCode === "excludedTax"}
+                  onChange={this.onChangeInput}
+                /> */}
+              </div>
+
+              <label>Promo Code</label>
+              <input
+                placeholder="Promo Code"
+                type="number"
+                tabIndex="10"
+                required
+                name="promoCode"
+                onChange={this.onChangeInput}
+                value={promoCode}
+                disabled={typeOfPromoCode === ""}
+                min={0}
+              />
+            </fieldset>
           </div>
 
           <div id="contact">
@@ -196,11 +332,19 @@ export default class App extends React.Component {
               name="totalPrice"
             />
 
+            <label>Total AP</label>
+            <input
+              disabled
+              type="number"
+              value={this.calculateTotalAP()}
+              name="totalPrice"
+            />
+
             <label>AP Ratio</label>
             <input
               disabled
               type="number"
-              value={this.calculateAPRatio()}
+              value={this.calculateAPRatio() || Infinity}
               name="apRatio"
             />
 
@@ -216,7 +360,7 @@ export default class App extends React.Component {
             <input
               disabled
               type="number"
-              value={this.calculateTotalAPToBeConsidered()}
+              value={this.calculateTotalAPToBeConsidered() || Infinity}
               name="totalAPToBeConsidered"
             />
 
@@ -224,7 +368,7 @@ export default class App extends React.Component {
             <input
               disabled
               type="number"
-              value={this.calculateRebateAP()}
+              value={this.calculateRebateAP() || Infinity}
               name="rebateAP"
             />
 
@@ -232,7 +376,7 @@ export default class App extends React.Component {
             <input
               disabled
               type="number"
-              value={this.calculateRebateINR()}
+              value={this.calculateRebateINR() || Infinity}
               name="rebateINR"
             />
           </div>

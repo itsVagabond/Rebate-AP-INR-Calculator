@@ -123,6 +123,26 @@ fieldset {
   padding: 10px;
 }
 
+#skuType-select {
+  width: 100%;
+  border: 1px solid #ccc;
+  background: #FFF;
+  margin: 0 !important;
+  padding: 3px !important;
+}
+
+.radio-button-group {
+  width: 100%;
+  border: 1px solid #ccc;
+  background: #FFF;
+  margin: 0 0 5px;
+  padding: 5px;
+}
+
+#contact input[type="radio"] {
+  margin: 0 30px 0 10px;
+}
+
 /* #contact input[type="text"]:hover,
 #contact input[type="email"]:hover,
 #contact input[type="tel"]:hover,
