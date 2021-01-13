@@ -23,6 +23,8 @@ export default class App extends React.Component {
       credits: 0,
       typeOfPromoCode: "",
       promoCode: 0,
+      LTBV: 0,
+      typeOfUser: ""
     };
   }
 
@@ -32,7 +34,7 @@ export default class App extends React.Component {
       [name]: value,
     };
 
-    if (!["testCase", "typeOfPromoCode", "skuType", "skuDetailList"].includes(name))
+    if (!["testCase", "typeOfPromoCode", "skuType", "skuDetailList", "typeOfUser"].includes(name))
       updateStateObj[name] = parseFloat(updateStateObj[name]);
 
     this.setState(updateStateObj);
@@ -76,8 +78,14 @@ export default class App extends React.Component {
     return this.calculateTotalAP() / this.calculateTotalPrice();
   };
 
+  calculateEffectiveTotalPrice = () => {
+    const { typeOfUser } = this.state;
+    return this.calculateTotalPrice() 
+  }
+
   calculateTotalPriceToBeConsidered = () => {
-    const { promoCode, credits } = this.state;
+    const { promoCode, credits, typeOfUser } = this.state;
+    const discountedTotalPrice = this.calc
     return this.calculateTotalPrice() - (promoCode + credits);
   };
 
@@ -112,6 +120,24 @@ export default class App extends React.Component {
         return 0;
     }
   };
+
+  purchaseLimitByRank = () => {
+    const { rebateRank } = this.state;
+
+    switch (rebateRank) {
+      case 1:
+        return 4000;
+      case 2:
+        return 24000;
+      case 3:
+      case 4:
+      case 5:
+      case 6:
+      case 7:
+      default:
+        return Infinity;
+    }
+  }
 
   calculateRebateAP = () => {
     return this.calculateTotalAPToBeConsidered() * this.percentDiscountByRank();
@@ -166,6 +192,9 @@ export default class App extends React.Component {
       typeOfPromoCode,
       skuType,
       skuDetailList,
+      rebateRank,
+      LTBV,
+      typeOfUser
     } = this.state;
 
     return (
@@ -178,6 +207,28 @@ export default class App extends React.Component {
         </header>
         <div className="container">
           <div id="contact">
+            <div className="radio-button-group">
+              <label>Customer</label>
+              <input
+                type="radio"
+                value="customer"
+                name="typeOfUser"
+                checked={typeOfUser === "customer"}
+                tabIndex="8"
+                onChange={this.onChangeInput}
+              />
+
+              <label>Distributor</label>
+              <input
+                type="radio"
+                value="distributor"
+                name="typeOfUser"
+                tabIndex="9"
+                checked={typeOfUser === "distributor"}
+                onChange={this.onChangeInput}
+              />
+            </div>
+
             <label>Test Case</label>
             <input
               placeholder="Test Case:"
@@ -208,6 +259,7 @@ export default class App extends React.Component {
               tabIndex="3"
               required
               onChange={this.onChangeInput}
+              disabled={typeOfUser === ""}
             >
               <option value={0}>--Please choose an option--</option>
               <option value={1}>Ambassador</option>
@@ -218,6 +270,23 @@ export default class App extends React.Component {
               <option value={6}>ABO</option>
               <option value={7}>Veteran ABO</option>
             </select>
+
+            {rebateRank === 1 || rebateRank === 2 ? (
+              <React.Fragment>
+                <legend>Lifetime Business Volume</legend>
+
+                <input
+                  placeholder="LTBV"
+                  type="number"
+                  tabIndex="7"
+                  required
+                  name="LTBV"
+                  onChange={this.onChangeInput}
+                  value={LTBV}
+                  min={0}
+                />
+              </React.Fragment>
+            ) : null}
 
             <fieldset>
               <legend>
